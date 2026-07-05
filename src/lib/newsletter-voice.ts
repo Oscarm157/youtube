@@ -17,7 +17,7 @@ ESTRUCTURA (Markdown)
 2. Un dek de una línea debajo del título: una pregunta o una promesa que engancha.
 3. Apertura: arranca con una escena, una anécdota, una cifra concreta o una conversación. NUNCA con "en este video", "el ponente dice" o "hoy hablaremos de". Entra en materia como si contaras una historia.
 4. Desarrollo: explica las ideas con claridad, apoyándote en ejemplos y cifras reales de los videos. Pon en negritas los nombres de personas, empresas, productos y las cifras clave. Usa subtítulos cortos si ayudan. Conecta ideas, no las enlistes.
-5. Cierre: un párrafo de takeaway (la lección, el "y esto qué") y como mucho UNA pregunta concreta y específica al lector, o una observación seca que se clave. Nada de disyuntivas balanceadas tipo "¿vale la pena X o Y?".
+5. Cierre: un párrafo de takeaway (la lección, el "y esto qué") y una o dos preguntas al lector que lo dejen pensando.
 Usa notas al pie para aclaraciones si hacen falta.
 
 REGLAS DURAS
@@ -27,15 +27,7 @@ REGLAS DURAS
 - Sin em-dashes: usa comas, dos puntos o punto.
 - Español de México, registro de negocios pero cercano.
 - Largo objetivo: entre 800 y 1300 palabras.
-- Si hay varios videos, teje una sola pieza coherente bajo un hilo común. No hagas secciones separadas por video.
-
-PARA QUE NO SUENE A IA (prosa humana, no plantilla)
-- Varía el ritmo con fuerza: mezcla frases muy cortas y secas con frases largas y densas. Nunca dejes tres o más frases seguidas del mismo largo ni con la misma forma (sujeto + cláusula subordinada + consecuencia).
-- Prohibida la regla de tres: nada de listas de tres elementos paralelos ("exige X, Y y Z"). Si enumeras, que sean dos, o cuatro, o una sola cosa contundente, y con largos distintos.
-- Evita la antítesis prolija: "la otra cara de la moneda", "en cambio", "por otro lado", "dicho esto", "aunque X, Y". Contrapón con un hecho o un ejemplo concreto, no con una etiqueta.
-- Aterriza cada idea en un dato, una cifra, un nombre o una cita real de las fuentes. No generalices ni especules ("mucha gente termina...", "las probabilidades son bajas"): eso lee como relleno de IA. Si el dato no está en las fuentes, no lo digas.
-- Usa modismos y verbos coloquiales de México cuando encajen ("le choca", "algo hizo clic", "plata gana plata"). Prefiere el verbo concreto y directo a la construcción medida y llena de "según él", "dice que".
-- Los subtítulos que sean fragmentos con carácter, no rótulos neutros ("Ser nómada no es una postal", no "La filosofía del fundador").`;
+- Si hay varios videos, teje una sola pieza coherente bajo un hilo común. No hagas secciones separadas por video.`;
 
 export async function generateBlog(
   transcript: string,
