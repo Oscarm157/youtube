@@ -24,8 +24,15 @@ REGLAS DURAS
 - Largo objetivo: entre 800 y 1300 palabras.
 - Si hay varios videos, teje una sola pieza coherente bajo un hilo común. No hagas secciones separadas por video.`;
 
-export async function generateBlog(transcript: string, sources: Source[]): Promise<string> {
-  const list = sources.map((s, i) => `Video ${i + 1}: ${s.title ?? s.url}`).join("\n");
+export async function generateBlog(
+  transcript: string,
+  sources: Source[],
+  direction?: string
+): Promise<string> {
+  const list = sources.map((s, i) => `Fuente ${i + 1}: ${s.title ?? s.url}`).join("\n");
+  const dir = direction?.trim()
+    ? `Dirección del editor (síguela dándole más peso a lo que pide, pero sin inventar datos que no estén en las fuentes): ${direction.trim()}\n\n`
+    : "";
   const res = await call({
     max_tokens: 4000,
     system: NEWSLETTER_VOICE,
@@ -34,9 +41,10 @@ export async function generateBlog(transcript: string, sources: Source[]): Promi
         role: "user",
         content:
           `Fuentes:\n${list}\n\n` +
-          `Escribe el newsletter a partir de estas transcripciones combinadas. ` +
+          dir +
+          `Escribe el newsletter a partir de estas fuentes combinadas. ` +
           `Devuelve solo el Markdown de la pieza, sin preámbulo ni comentarios tuyos.\n\n` +
-          `<transcripciones>\n${transcript}\n</transcripciones>`,
+          `<fuentes>\n${transcript}\n</fuentes>`,
       },
     ],
   });

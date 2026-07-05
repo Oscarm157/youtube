@@ -72,7 +72,10 @@ export async function runAnalysis(_prev: FormState, formData: FormData): Promise
   redirect(`/a/${id}`);
 }
 
-export async function generateBlogAction(id: string): Promise<{ error: string } | void> {
+export async function generateBlogAction(
+  id: string,
+  direction?: string
+): Promise<{ error: string } | void> {
   let row;
   try {
     [row] = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
@@ -82,7 +85,7 @@ export async function generateBlogAction(id: string): Promise<{ error: string } 
   if (!row) return { error: "El análisis no existe." };
 
   try {
-    const blog = await generateBlog(row.transcript, row.sources);
+    const blog = await generateBlog(row.transcript, row.sources, direction);
     await db.update(analyses).set({ blog }).where(eq(analyses.id, id));
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al generar el newsletter." };

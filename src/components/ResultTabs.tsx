@@ -2,7 +2,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Markdown } from "@/components/Markdown";
 import { ExportButtons } from "@/components/ExportButtons";
-import { GenerateBlogButton } from "@/components/GenerateBlogButton";
+import { NewsletterPanel } from "@/components/NewsletterPanel";
 import { Empty } from "@/components/states";
 import type { Extraccion } from "@/lib/schema";
 
@@ -87,20 +87,8 @@ export function ResultTabs({
         <ExtraccionView e={extraccion} />
       </TabsContent>
 
-      <TabsContent value="newsletter" className="space-y-4 pt-3">
-        {blog ? (
-          <>
-            <div className="flex flex-wrap items-center gap-2">
-              <ExportButtons base={`${base}-newsletter`} markdown={blog} html={blogHtml} />
-              <GenerateBlogButton id={id} regenerate />
-            </div>
-            <article className="rounded-xl border p-5">
-              <Markdown>{blog}</Markdown>
-            </article>
-          </>
-        ) : (
-          <GenerateBlogButton id={id} />
-        )}
+      <TabsContent value="newsletter" className="pt-3">
+        <NewsletterPanel id={id} base={base} blog={blog} blogHtml={blogHtml} />
       </TabsContent>
     </Tabs>
   );
