@@ -48,54 +48,56 @@ const BASE =
   "Analizas la transcripción de uno o varios videos de YouTube. Responde SIEMPRE en español, aunque los videos estén en inglés. " +
   "Prohibido inventar lo que no aparece en la transcripción. Nada de frases huecas de marketing. Sin em-dashes.";
 
-// Un solo prompt cubre los tres entregables: la transcripción viaja una vez, no tres.
-const ANALISIS_SYS =
-  `${BASE}\n\nAnaliza la transcripción y llena la herramienta emit_analisis con tres entregables:\n` +
-  `- resumen (Markdown conciso): 1) **TL;DR** en 2 o 3 frases; 2) **Puntos clave** en bullets con las ideas que importan; 3) **Contexto**: quién habla y para quién, si se infiere.\n` +
-  `- resumenExtendido (Markdown, profundo pero sin relleno): reconstruye el argumento completo (la tesis, cómo se desarrolla, los matices, los ejemplos y cifras concretas, las conclusiones) con encabezados. Que quien lo lea entienda el video casi tan bien como si lo hubiera visto. No repitas el TL;DR, ve al fondo.\n` +
-  `- Los datos concretos: cifras, nombres, herramientas, pasos y citas, solo lo explícito. Categoría sin nada, vacía.`;
+// Dos llamadas en PARALELO: el resumen extendido (salida larga) es el cuello de botella,
+// así que corre solo, y resumen+datos van juntos en otra. Tiempo de pared ≈ la más lenta,
+// no la suma: cabe en los 60s de Vercel aun con transcripts largos.
+const RESUMEN_SYS =
+  `${BASE}\n\nLlena la herramienta emit_resumen con un resumen conciso y los datos concretos:\n` +
+  `- resumen (Markdown): 1) **TL;DR** en 2 o 3 frases; 2) **Puntos clave** en bullets con las ideas que importan; 3) **Contexto**: quién habla y para quién, si se infiere.\n` +
+  `- cifras, nombres, herramientas, pasos y citas: solo lo explícito. Categoría sin nada, vacía.`;
 
-const ANALISIS_TOOL: Tool = {
-  name: "emit_analisis",
-  description: "Resumen, resumen extendido y datos concretos extraídos de los videos.",
+const RESUMEN_TOOL: Tool = {
+  name: "emit_resumen",
+  description: "Resumen conciso y datos concretos extraídos de los videos.",
   input_schema: {
     type: "object",
     properties: {
       resumen: { type: "string", description: "Resumen conciso en Markdown (TL;DR, puntos clave, contexto)" },
-      resumenExtendido: { type: "string", description: "Resumen extendido y profundo en Markdown, con encabezados" },
       cifras: { type: "array", items: { type: "string" }, description: "Cifras, fechas, porcentajes o montos, con su contexto" },
       nombres: { type: "array", items: { type: "string" }, description: "Personas, empresas, productos o lugares nombrados" },
       herramientas: { type: "array", items: { type: "string" }, description: "Herramientas, tecnologías, servicios, libros o recursos mencionados" },
       pasos: { type: "array", items: { type: "string" }, description: "Si se enseña un proceso, los pasos en orden; si no aplica, vacío" },
       citas: { type: "array", items: { type: "string" }, description: "Frases textuales memorables o clave, literales de los videos" },
     },
-    required: ["resumen", "resumenExtendido", "cifras", "nombres", "herramientas", "pasos", "citas"],
+    required: ["resumen", "cifras", "nombres", "herramientas", "pasos", "citas"],
   },
 };
 
-export type Analysis3 = { resumen: string; resumenExtendido: string; extraccion: Extraccion };
+const EXTENDIDO_SYS =
+  `${BASE}\n\nEscribe un resumen EXTENDIDO en Markdown, profundo pero sin relleno. ` +
+  `Reconstruye el argumento completo: la tesis, cómo se desarrolla, los matices, los ejemplos concretos y las cifras que se mencionan, ` +
+  `y las conclusiones. Usa secciones con encabezados. Que quien lo lea entienda el video casi tan bien como si lo hubiera visto, ` +
+  `pero en una fracción del tiempo. No repitas el TL;DR, ve al fondo. Devuelve solo el Markdown.`;
 
-export async function analyze(transcript: string): Promise<Analysis3> {
+const clean = (a: unknown): string[] =>
+  (Array.isArray(a) ? a : a == null ? [] : [a]).map((x) => stripDashes(String(x)));
+
+async function resumenYDatos(transcript: string): Promise<{ resumen: string; extraccion: Extraccion }> {
   const res = await call(
     {
-      max_tokens: 8000,
-      system: ANALISIS_SYS,
-      tools: [ANALISIS_TOOL],
-      tool_choice: { type: "tool", name: "emit_analisis" },
+      max_tokens: 3000,
+      system: RESUMEN_SYS,
+      tools: [RESUMEN_TOOL],
+      tool_choice: { type: "tool", name: "emit_resumen" },
       messages: [{ role: "user", content: `<transcripcion>\n${transcript}\n</transcripcion>` }],
     },
     HAIKU
   );
   const block = res.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") throw new Error("analisis_failed");
+  if (!block || block.type !== "tool_use") throw new Error("resumen_failed");
   const o = block.input as Record<string, unknown>;
-  // El modelo a veces devuelve un campo que no es array (string, null): coaccionar sin crashear.
-  const clean = (a: unknown): string[] =>
-    (Array.isArray(a) ? a : a == null ? [] : [a]).map((x) => stripDashes(String(x)));
-  const text = (v: unknown): string => stripDashes(typeof v === "string" ? v : String(v ?? ""));
   return {
-    resumen: text(o.resumen),
-    resumenExtendido: text(o.resumenExtendido),
+    resumen: stripDashes(typeof o.resumen === "string" ? o.resumen : String(o.resumen ?? "")),
     extraccion: {
       cifras: clean(o.cifras),
       nombres: clean(o.nombres),
@@ -104,4 +106,23 @@ export async function analyze(transcript: string): Promise<Analysis3> {
       citas: clean(o.citas),
     },
   };
+}
+
+async function extendido(transcript: string): Promise<string> {
+  const res = await call(
+    {
+      max_tokens: 4000,
+      system: EXTENDIDO_SYS,
+      messages: [{ role: "user", content: `<transcripcion>\n${transcript}\n</transcripcion>` }],
+    },
+    HAIKU
+  );
+  return stripDashes(textFrom(res));
+}
+
+export type Analysis3 = { resumen: string; resumenExtendido: string; extraccion: Extraccion };
+
+export async function analyze(transcript: string): Promise<Analysis3> {
+  const [rd, resumenExtendido] = await Promise.all([resumenYDatos(transcript), extendido(transcript)]);
+  return { resumen: rd.resumen, resumenExtendido, extraccion: rd.extraccion };
 }
