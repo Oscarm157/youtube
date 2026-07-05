@@ -9,6 +9,8 @@ import { analyses, type Analysis } from "@/lib/schema";
 import { ResultTabs } from "@/components/ResultTabs";
 
 export const dynamic = "force-dynamic";
+// El newsletter (Sonnet, transcript largo) puede pasar de 60s. Pro permite 300.
+export const maxDuration = 300;
 
 function slug(s: string): string {
   return (

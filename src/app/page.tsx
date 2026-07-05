@@ -5,8 +5,8 @@ import { db } from "@/lib/db";
 import { analyses } from "@/lib/schema";
 import { AnalyzeForm } from "@/components/AnalyzeForm";
 
-// El análisis (transcript + Claude) puede pasar del límite default de 10s en Vercel.
-export const maxDuration = 60;
+// El análisis (transcript + Claude) de videos largos puede pasar de 60s. Pro permite 300.
+export const maxDuration = 300;
 // Lee DB en cada request; no prerender en build (sin DATABASE_URL truena).
 export const dynamic = "force-dynamic";
 
