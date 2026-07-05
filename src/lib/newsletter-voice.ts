@@ -2,6 +2,11 @@
 import { call, textFrom, stripDashes } from "./analyze";
 import type { Source } from "./schema";
 
+// El newsletter es la pieza que importa: Sonnet 5 (calidad alta y entra en los 60s de
+// Vercel Hobby). Opus 4.8 es aún mejor pero un newsletter largo puede pasarse del límite;
+// pon "claude-opus-4-8" primero si el proyecto ya está en Vercel Pro (300s).
+const BLOG = ["claude-sonnet-5", "claude-sonnet-4-6"];
+
 export const NEWSLETTER_VOICE = `Eres redactor del newsletter de negocios estilo Whitepaper.mx. Escribes en español de México para lectores de negocios: fundadores, ejecutivos, inversionistas y curiosos del mundo empresarial.
 
 VOZ
@@ -33,20 +38,33 @@ export async function generateBlog(
   const dir = direction?.trim()
     ? `Dirección del editor (síguela dándole más peso a lo que pide, pero sin inventar datos que no estén en las fuentes): ${direction.trim()}\n\n`
     : "";
-  const res = await call({
-    max_tokens: 4000,
-    system: NEWSLETTER_VOICE,
-    messages: [
-      {
-        role: "user",
-        content:
-          `Fuentes:\n${list}\n\n` +
-          dir +
-          `Escribe el newsletter a partir de estas fuentes combinadas. ` +
-          `Devuelve solo el Markdown de la pieza, sin preámbulo ni comentarios tuyos.\n\n` +
-          `<fuentes>\n${transcript}\n</fuentes>`,
-      },
-    ],
-  });
+  // La transcripción va primero con cache_control: al regenerar (otra dirección) se
+  // lee del caché a ~0.1x en vez de reenviarla completa. La dirección va al final.
+  const res = await call(
+    {
+      max_tokens: 4000,
+      system: NEWSLETTER_VOICE,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Fuentes:\n${list}\n\n<fuentes>\n${transcript}\n</fuentes>`,
+              cache_control: { type: "ephemeral" },
+            },
+            {
+              type: "text",
+              text:
+                dir +
+                `Escribe el newsletter a partir de estas fuentes combinadas. ` +
+                `Devuelve solo el Markdown de la pieza, sin preámbulo ni comentarios tuyos.`,
+            },
+          ],
+        },
+      ],
+    },
+    BLOG
+  );
   return stripDashes(textFrom(res));
 }
