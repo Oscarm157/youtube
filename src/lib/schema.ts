@@ -139,8 +139,17 @@ export const items = pgTable("items", {
 
 export type Item = typeof items.$inferSelect;
 
-// ===== Analizador de YouTube =====
-// Datos que la IA extrae del transcript, tipados para render directo en la UI.
+// ===== Analizador de YouTube / Generador de Newsletter =====
+// Un análisis combina 1 a 3 videos fuente.
+export type Source = {
+  url: string;
+  title: string | null;
+  lang: string;
+  source: string; // captions | generate
+  videoId: string | null;
+};
+
+// Datos concretos que la IA extrae, tipados para render directo.
 export type Extraccion = {
   cifras: string[];
   nombres: string[];
@@ -149,22 +158,14 @@ export type Extraccion = {
   citas: string[];
 };
 
-export type AnalysisResult = {
-  resumen: string; // markdown
-  extraccion: Extraccion;
-  repurposing: string; // markdown
-  critico: string; // markdown
-};
-
 export const analyses = pgTable("analyses", {
   id: uuid("id").primaryKey().defaultRandom(),
-  url: text("url").notNull(),
-  videoId: text("video_id"),
-  title: text("title"),
-  lang: text("lang"),
-  source: text("source"), // captions | generate
-  transcript: text("transcript").notNull(),
-  results: jsonb("results").$type<AnalysisResult>().notNull(),
+  sources: jsonb("sources").$type<Source[]>().notNull(),
+  transcript: text("transcript").notNull(), // combinado, para regenerar el blog
+  resumen: text("resumen").notNull(),
+  resumenExtendido: text("resumen_extendido").notNull(),
+  extraccion: jsonb("extraccion").$type<Extraccion>().notNull(),
+  blog: text("blog"), // markdown del newsletter, se llena on-demand
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

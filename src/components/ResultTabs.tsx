@@ -1,28 +1,38 @@
 "use client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Markdown } from "@/components/Markdown";
-import type { AnalysisResult, Extraccion } from "@/lib/schema";
+import { ExportButtons } from "@/components/ExportButtons";
+import { GenerateBlogButton } from "@/components/GenerateBlogButton";
+import { Empty } from "@/components/states";
+import type { Extraccion } from "@/lib/schema";
+
+const GROUPS: { key: keyof Extraccion; label: string }[] = [
+  { key: "cifras", label: "Cifras y datos" },
+  { key: "nombres", label: "Nombres y menciones" },
+  { key: "herramientas", label: "Herramientas y recursos" },
+  { key: "pasos", label: "Pasos / proceso" },
+  { key: "citas", label: "Citas" },
+];
+
+function extraccionToMarkdown(e: Extraccion): string {
+  const blocks = GROUPS.filter((g) => e[g.key].length > 0).map(
+    (g) => `## ${g.label}\n${e[g.key].map((it) => `- ${it}`).join("\n")}`
+  );
+  return blocks.join("\n\n");
+}
 
 function ExtraccionView({ e }: { e: Extraccion }) {
-  const groups = [
-    { label: "Cifras y datos", items: e.cifras },
-    { label: "Nombres y menciones", items: e.nombres },
-    { label: "Herramientas y recursos", items: e.herramientas },
-    { label: "Pasos / proceso", items: e.pasos },
-    { label: "Citas", items: e.citas },
-  ].filter((g) => g.items.length > 0);
-
+  const groups = GROUPS.filter((g) => e[g.key].length > 0);
   if (groups.length === 0) {
-    return <p className="text-sm text-muted-foreground">Sin datos concretos para extraer de este video.</p>;
+    return <Empty title="Sin datos concretos" hint="Estos videos no traían cifras, nombres ni pasos para extraer." />;
   }
-
   return (
     <div className="space-y-5">
       {groups.map((g) => (
-        <section key={g.label}>
+        <section key={g.key}>
           <h3 className="mb-2 text-sm font-semibold">{g.label}</h3>
           <ul className="list-disc space-y-1 pl-5 text-sm text-foreground/90">
-            {g.items.map((it, i) => (
+            {e[g.key].map((it, i) => (
               <li key={i} className="leading-6">
                 {it}
               </li>
@@ -34,26 +44,63 @@ function ExtraccionView({ e }: { e: Extraccion }) {
   );
 }
 
-export function ResultTabs({ results }: { results: AnalysisResult }) {
+export function ResultTabs({
+  id,
+  base,
+  resumen,
+  resumenExtendido,
+  extraccion,
+  blog,
+  blogHtml,
+}: {
+  id: string;
+  base: string;
+  resumen: string;
+  resumenExtendido: string;
+  extraccion: Extraccion;
+  blog: string | null;
+  blogHtml: string | null;
+}) {
+  const datosMd = extraccionToMarkdown(extraccion);
+
   return (
     <Tabs defaultValue="resumen" className="w-full">
       <TabsList className="w-full">
         <TabsTrigger value="resumen">Resumen</TabsTrigger>
-        <TabsTrigger value="extraccion">Extracción</TabsTrigger>
-        <TabsTrigger value="repurposing">Repurposing</TabsTrigger>
-        <TabsTrigger value="critico">Crítico</TabsTrigger>
+        <TabsTrigger value="extendido">Extendido</TabsTrigger>
+        <TabsTrigger value="datos">Datos</TabsTrigger>
+        <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
       </TabsList>
-      <TabsContent value="resumen" className="pt-3">
-        <Markdown>{results.resumen}</Markdown>
+
+      <TabsContent value="resumen" className="space-y-4 pt-3">
+        <ExportButtons base={`${base}-resumen`} markdown={resumen} />
+        <Markdown>{resumen}</Markdown>
       </TabsContent>
-      <TabsContent value="extraccion" className="pt-3">
-        <ExtraccionView e={results.extraccion} />
+
+      <TabsContent value="extendido" className="space-y-4 pt-3">
+        <ExportButtons base={`${base}-extendido`} markdown={resumenExtendido} />
+        <Markdown>{resumenExtendido}</Markdown>
       </TabsContent>
-      <TabsContent value="repurposing" className="pt-3">
-        <Markdown>{results.repurposing}</Markdown>
+
+      <TabsContent value="datos" className="space-y-4 pt-3">
+        {datosMd ? <ExportButtons base={`${base}-datos`} markdown={datosMd} /> : null}
+        <ExtraccionView e={extraccion} />
       </TabsContent>
-      <TabsContent value="critico" className="pt-3">
-        <Markdown>{results.critico}</Markdown>
+
+      <TabsContent value="newsletter" className="space-y-4 pt-3">
+        {blog ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <ExportButtons base={`${base}-newsletter`} markdown={blog} html={blogHtml} />
+              <GenerateBlogButton id={id} regenerate />
+            </div>
+            <article className="rounded-xl border p-5">
+              <Markdown>{blog}</Markdown>
+            </article>
+          </>
+        ) : (
+          <GenerateBlogButton id={id} />
+        )}
       </TabsContent>
     </Tabs>
   );
