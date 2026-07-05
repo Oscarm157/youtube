@@ -84,3 +84,20 @@ export async function getTranscript(url: string): Promise<TranscriptResult> {
   const title = await fetchTitle(url);
   return { text: content, lang: j.lang || "?", title, videoId: youtubeId(url), source: "captions" };
 }
+
+// Contenido de una página web (Supadata web scrape) para usarla como contexto.
+export async function getWebContent(url: string): Promise<{ text: string; title: string | null }> {
+  const res = await fetch(`${SUPADATA_BASE}/web/scrape?${new URLSearchParams({ url, noLinks: "true" })}`, {
+    headers: { "x-api-key": apiKey() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) throw new Error("SUPADATA_API_KEY inválida.");
+    if (res.status === 429) throw new Error("Límite de Supadata alcanzado (free tier: 100/mes).");
+    throw new Error(`No se pudo leer la página (${res.status}).`);
+  }
+  const j = (await res.json()) as { content?: string; name?: string };
+  const text = j.content ?? "";
+  if (text.length < 50) throw new Error("La página no tiene contenido legible.");
+  return { text, title: j.name?.trim() || null };
+}

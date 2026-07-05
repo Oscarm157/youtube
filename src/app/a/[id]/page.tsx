@@ -53,10 +53,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
               <a href={s.url} target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">
                 {s.title ?? s.url}
               </a>
-              <span>
-                {" · "}
-                {s.lang} · {s.source}
-              </span>
+              <span>{" · "}{s.source === "web" ? "sitio web" : `video · ${s.lang}`}</span>
             </li>
           ))}
         </ul>

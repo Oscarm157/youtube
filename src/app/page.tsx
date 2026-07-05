@@ -34,8 +34,8 @@ export default async function Home() {
     <main className="mx-auto w-full max-w-2xl px-5 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Analizador de YouTube</h1>
       <p className="mt-1 mb-8 text-sm text-muted-foreground">
-        Pega 1 a 3 links de YouTube (inglés o español). Sale resumen, versión extendida, datos, y un
-        newsletter en estilo Whitepaper. En español.
+        Pega 1 a 3 fuentes: videos de YouTube o sitios web. Sale resumen, versión extendida, datos, y
+        un newsletter en estilo Whitepaper. En español.
       </p>
 
       <AnalyzeForm />

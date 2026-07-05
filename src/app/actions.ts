@@ -6,14 +6,11 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { analyses, type Source } from "@/lib/schema";
-import { getTranscript, youtubeId } from "@/lib/transcript";
+import { getTranscript, getWebContent, youtubeId } from "@/lib/transcript";
 import { analyze } from "@/lib/analyze";
 import { generateBlog } from "@/lib/newsletter-voice";
 
-const urlSchema = z
-  .string()
-  .url()
-  .refine((u) => youtubeId(u) !== null, "No parece un link de YouTube.");
+const urlSchema = z.string().url("URL inválida.");
 
 // Rate-limit in-memory (single-user; frena runaway o abuso si se filtra la URL).
 const WINDOW_MS = 60_000;
@@ -38,7 +35,7 @@ export async function runAnalysis(_prev: FormState, formData: FormData): Promise
     .filter(Boolean);
   const urls = [...new Set(raw)].slice(0, 3);
 
-  if (urls.length === 0) return { error: "Pega al menos un link de YouTube." };
+  if (urls.length === 0) return { error: "Pega al menos una fuente (YouTube o sitio web)." };
   for (const u of urls) {
     const ok = urlSchema.safeParse(u);
     if (!ok.success) return { error: `${u}: ${ok.error.issues[0]?.message ?? "URL inválida."}` };
@@ -49,9 +46,16 @@ export async function runAnalysis(_prev: FormState, formData: FormData): Promise
     const sources: Source[] = [];
     const parts: string[] = [];
     for (let i = 0; i < urls.length; i++) {
-      const t = await getTranscript(urls[i]);
-      sources.push({ url: urls[i], title: t.title, lang: t.lang, source: t.source, videoId: t.videoId });
-      parts.push(`## Video ${i + 1}: ${t.title ?? urls[i]}\n\n${t.text}`);
+      const url = urls[i];
+      if (youtubeId(url)) {
+        const t = await getTranscript(url);
+        sources.push({ url, title: t.title, lang: t.lang, source: t.source, videoId: t.videoId });
+        parts.push(`## Video ${i + 1}: ${t.title ?? url}\n\n${t.text}`);
+      } else {
+        const w = await getWebContent(url);
+        sources.push({ url, title: w.title, lang: "", source: "web", videoId: null });
+        parts.push(`## Artículo ${i + 1}: ${w.title ?? url}\n\n${w.text}`);
+      }
     }
     const transcript = parts.join("\n\n---\n\n");
     const { resumen, resumenExtendido, extraccion } = await analyze(transcript);

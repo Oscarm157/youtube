@@ -31,7 +31,7 @@ export function AnalyzeForm() {
                 type="url"
                 required={i === 0}
                 disabled={pending}
-                placeholder={i === 0 ? "https://youtube.com/watch?v=..." : "Otro video (opcional)"}
+                placeholder={i === 0 ? "Link de YouTube o sitio web" : "Otra fuente (opcional)"}
                 className="flex-1"
               />
               {rows.length > 1 ? (
@@ -60,7 +60,7 @@ export function AnalyzeForm() {
               disabled={pending}
               className="text-muted-foreground"
             >
-              <Plus className="size-4" /> Agregar otro video
+              <Plus className="size-4" /> Agregar otra fuente
             </Button>
           ) : (
             <span />
@@ -71,7 +71,7 @@ export function AnalyzeForm() {
         </div>
       </form>
 
-      {pending ? <Loading label="Bajando transcripts y analizando..." /> : null}
+      {pending ? <Loading label="Leyendo las fuentes y analizando..." /> : null}
     </div>
   );
 }
