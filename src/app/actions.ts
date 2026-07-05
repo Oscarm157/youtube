@@ -1,8 +1,11 @@
 "use server";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
+import { db } from "@/lib/db";
+import { analyses } from "@/lib/schema";
 import { getTranscript, youtubeId } from "@/lib/transcript";
-import { analyzeResumen } from "@/lib/analyze";
+import { analyze } from "@/lib/analyze";
 
 const schema = z.object({
   url: z
@@ -22,31 +25,37 @@ function limited(): boolean {
   return hits.length > MAX;
 }
 
-export type ResumenResult = {
-  title: string | null;
-  lang: string;
-  source: string;
-  resumen: string;
-};
+export type FormState = { error: string } | null;
 
-export type ActionState =
-  | { ok: true; data: ResumenResult }
-  | { ok: false; error: string }
-  | null;
-
-export async function runResumen(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  if (limited()) return { ok: false, error: "Demasiadas solicitudes. Espera un momento." };
+export async function runAnalysis(_prev: FormState, formData: FormData): Promise<FormState> {
+  if (limited()) return { error: "Demasiadas solicitudes. Espera un momento." };
 
   const parsed = schema.safeParse({ url: formData.get("url") });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
+  let id: string;
   try {
     const t = await getTranscript(parsed.data.url);
-    const resumen = await analyzeResumen(t.text);
-    return { ok: true, data: { title: t.title, lang: t.lang, source: t.source, resumen } };
+    const results = await analyze(t.text);
+    const [row] = await db
+      .insert(analyses)
+      .values({
+        url: parsed.data.url,
+        videoId: t.videoId,
+        title: t.title,
+        lang: t.lang,
+        source: t.source,
+        transcript: t.text,
+        results,
+      })
+      .returning({ id: analyses.id });
+    id = row.id;
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Error al analizar el video." };
+    return { error: e instanceof Error ? e.message : "Error al analizar el video." };
   }
+
+  // redirect va fuera del try: lanza un control-flow que el catch no debe tragarse.
+  redirect(`/a/${id}`);
 }
