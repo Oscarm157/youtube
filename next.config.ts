@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withBotId } from "botid/next/config";
 
 // Security headers por default (regla del starter: seguridad de base, no al final).
 const securityHeaders = [
@@ -17,5 +16,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Envuelve la config con BotID preservando headers y poweredByHeader existentes.
-export default withBotId(nextConfig);
+export default nextConfig;

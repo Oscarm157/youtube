@@ -1,6 +1,5 @@
 "use server";
 import { z } from "zod";
-import { checkBotId } from "botid/server";
 
 import { getTranscript, youtubeId } from "@/lib/transcript";
 import { analyzeResumen } from "@/lib/analyze";
@@ -36,14 +35,6 @@ export type ActionState =
   | null;
 
 export async function runResumen(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  // BotID solo funciona en Vercel con protección client-side; fuera de eso truena.
-  // Fail-open: si no está configurado, seguimos (el rate-limit protege igual).
-  try {
-    const { isBot } = await checkBotId();
-    if (isBot) return { ok: false, error: "Bloqueado." };
-  } catch {
-    // BotID no disponible (VPS/local o falta client-side protection): continuar.
-  }
   if (limited()) return { ok: false, error: "Demasiadas solicitudes. Espera un momento." };
 
   const parsed = schema.safeParse({ url: formData.get("url") });
