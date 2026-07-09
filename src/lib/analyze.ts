@@ -79,8 +79,19 @@ const EXTENDIDO_SYS =
   `y las conclusiones. Usa secciones con encabezados. Que quien lo lea entienda el video casi tan bien como si lo hubiera visto, ` +
   `pero en una fracción del tiempo. No repitas el TL;DR, ve al fondo. Devuelve solo el Markdown.`;
 
-const clean = (a: unknown): string[] =>
-  (Array.isArray(a) ? a : a == null ? [] : [a]).map((x) => stripDashes(String(x)));
+// Haiku a veces devuelve el array como un solo string con los items envueltos
+// en <item>...</item> en vez de un array limpio. Desenvolvemos esos tags.
+const clean = (a: unknown): string[] => {
+  const arr = Array.isArray(a) ? a : a == null ? [] : [a];
+  return arr
+    .flatMap((x) => {
+      const s = String(x);
+      const items = [...s.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1]);
+      return items.length ? items : [s];
+    })
+    .map((x) => stripDashes(x.trim()))
+    .filter(Boolean);
+};
 
 async function resumenYDatos(transcript: string): Promise<{ resumen: string; extraccion: Extraccion }> {
   const res = await call(
