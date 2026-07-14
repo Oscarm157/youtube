@@ -37,6 +37,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
 
   const title = row.sources[0]?.title ?? "Análisis";
   const blogHtml = row.blog ? await marked.parse(row.blog) : null;
+  const socialHtml = row.social ? await marked.parse(row.social) : null;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 py-12">
@@ -69,6 +70,8 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
         extraccion={row.extraccion}
         blog={row.blog}
         blogHtml={blogHtml}
+        social={row.social}
+        socialHtml={socialHtml}
       />
     </main>
   );

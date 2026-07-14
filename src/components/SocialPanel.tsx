@@ -4,25 +4,38 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mic, Square } from "lucide-react";
 
-import { generateBlogAction } from "@/app/actions";
+import { generateSocialAction } from "@/app/actions";
+import type { SocialFormat, SocialVoice } from "@/lib/social-voice";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loading } from "@/components/states";
 import { Markdown } from "@/components/Markdown";
 import { ExportButtons } from "@/components/ExportButtons";
 
+const FORMATS: { value: SocialFormat; label: string }[] = [
+  { value: "carrusel", label: "Carrusel" },
+  { value: "video", label: "Video corto" },
+  { value: "post", label: "Post / hilo" },
+];
+const VOICES: { value: SocialVoice; label: string }[] = [
+  { value: "punchy", label: "Punchy" },
+  { value: "whitepaper", label: "Whitepaper" },
+];
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function NewsletterPanel({
+export function SocialPanel({
   id,
   base,
-  blog,
-  blogHtml,
+  social,
+  socialHtml,
 }: {
   id: string;
   base: string;
-  blog: string | null;
-  blogHtml: string | null;
+  social: string | null;
+  socialHtml: string | null;
 }) {
+  const [formats, setFormats] = useState<SocialFormat[]>(["carrusel"]);
+  const [voice, setVoice] = useState<SocialVoice>("punchy");
   const [direction, setDirection] = useState("");
   const [pending, start] = useTransition();
   const [listening, setListening] = useState(false);
@@ -36,7 +49,10 @@ export function NewsletterPanel({
     setVoiceOk(!!SR);
   }, []);
 
-  const toggleVoice = () => {
+  const toggleFormat = (f: SocialFormat) =>
+    setFormats((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
+
+  const toggleDictation = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
     if (listening) {
@@ -61,24 +77,69 @@ export function NewsletterPanel({
     setListening(true);
   };
 
-  const generate = () =>
+  const generate = () => {
+    if (formats.length === 0) {
+      toast.error("Elige al menos un formato.");
+      return;
+    }
     start(async () => {
-      const res = await generateBlogAction(id, direction.trim() || undefined);
+      const res = await generateSocialAction(id, {
+        formats,
+        voice,
+        direction: direction.trim() || undefined,
+      });
       if (res?.error) toast.error(res.error);
       else router.refresh();
     });
+  };
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="text-sm font-medium">Dirección para el newsletter (opcional)</label>
+        <label className="text-sm font-medium">Formato (elige uno o más)</label>
+        <div className="flex flex-wrap gap-2">
+          {FORMATS.map((f) => (
+            <Button
+              key={f.value}
+              type="button"
+              size="sm"
+              variant={formats.includes(f.value) ? "default" : "outline"}
+              onClick={() => toggleFormat(f.value)}
+              disabled={pending}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Voz</label>
+        <div className="flex flex-wrap gap-2">
+          {VOICES.map((v) => (
+            <Button
+              key={v.value}
+              type="button"
+              size="sm"
+              variant={voice === v.value ? "default" : "outline"}
+              onClick={() => setVoice(v.value)}
+              disabled={pending}
+            >
+              {v.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Dirección (opcional)</label>
         <div className="relative">
           <Textarea
             value={direction}
             onChange={(e) => setDirection(e.target.value)}
             disabled={pending}
             rows={3}
-            placeholder="Dale más peso a X, enfócate en Y, arranca con la anécdota de Z, tono más directo..."
+            placeholder="Enfócate en X, arranca con el dato de Y, tono más agresivo, para audiencia Z..."
             className="pr-12"
           />
           {voiceOk ? (
@@ -86,7 +147,7 @@ export function NewsletterPanel({
               type="button"
               variant={listening ? "default" : "ghost"}
               size="icon"
-              onClick={toggleVoice}
+              onClick={toggleDictation}
               disabled={pending}
               className="absolute right-2 top-2"
               aria-label={listening ? "Detener dictado" : "Dictar por voz"}
@@ -100,28 +161,28 @@ export function NewsletterPanel({
         ) : null}
       </div>
 
-      {blog ? (
+      {social ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <ExportButtons base={`${base}-newsletter`} markdown={blog} html={blogHtml} />
+            <ExportButtons base={`${base}-social`} markdown={social} html={socialHtml} />
             <Button onClick={generate} disabled={pending} variant="outline" size="sm">
               {pending ? "Regenerando..." : "Regenerar"}
             </Button>
           </div>
           {pending ? (
-            <Loading label="Redactando con tu dirección..." />
+            <Loading label="Escribiendo los scripts..." />
           ) : (
             <article className="rounded-xl border p-5">
-              <Markdown>{blog}</Markdown>
+              <Markdown>{social}</Markdown>
             </article>
           )}
         </>
       ) : (
         <>
           <Button onClick={generate} disabled={pending}>
-            {pending ? "Generando..." : "Generar newsletter"}
+            {pending ? "Generando..." : "Generar script"}
           </Button>
-          {pending ? <Loading label="Redactando el newsletter en voz Whitepaper..." /> : null}
+          {pending ? <Loading label="Escribiendo los scripts para redes..." /> : null}
         </>
       )}
     </div>

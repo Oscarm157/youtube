@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Markdown } from "@/components/Markdown";
 import { ExportButtons } from "@/components/ExportButtons";
 import { NewsletterPanel } from "@/components/NewsletterPanel";
+import { SocialPanel } from "@/components/SocialPanel";
 import { Empty } from "@/components/states";
 import type { Extraccion } from "@/lib/schema";
 
@@ -52,6 +53,8 @@ export function ResultTabs({
   extraccion,
   blog,
   blogHtml,
+  social,
+  socialHtml,
 }: {
   id: string;
   base: string;
@@ -60,6 +63,8 @@ export function ResultTabs({
   extraccion: Extraccion;
   blog: string | null;
   blogHtml: string | null;
+  social: string | null;
+  socialHtml: string | null;
 }) {
   const datosMd = extraccionToMarkdown(extraccion);
 
@@ -70,6 +75,7 @@ export function ResultTabs({
         <TabsTrigger value="extendido">Extendido</TabsTrigger>
         <TabsTrigger value="datos">Datos</TabsTrigger>
         <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+        <TabsTrigger value="social">Social</TabsTrigger>
       </TabsList>
 
       <TabsContent value="resumen" className="space-y-4 pt-3">
@@ -89,6 +95,10 @@ export function ResultTabs({
 
       <TabsContent value="newsletter" className="pt-3">
         <NewsletterPanel id={id} base={base} blog={blog} blogHtml={blogHtml} />
+      </TabsContent>
+
+      <TabsContent value="social" className="pt-3">
+        <SocialPanel id={id} base={base} social={social} socialHtml={socialHtml} />
       </TabsContent>
     </Tabs>
   );

@@ -9,8 +9,15 @@ import { analyses, type Source } from "@/lib/schema";
 import { getTranscript, getWebContent, youtubeId } from "@/lib/transcript";
 import { analyze } from "@/lib/analyze";
 import { generateBlog } from "@/lib/newsletter-voice";
+import { generateSocial } from "@/lib/social-voice";
 
 const urlSchema = z.string().url("URL inválida.");
+
+const socialOptsSchema = z.object({
+  formats: z.array(z.enum(["carrusel", "video", "post"])).min(1),
+  voice: z.enum(["punchy", "whitepaper"]),
+  direction: z.string().optional(),
+});
 
 // Rate-limit in-memory (single-user; frena runaway o abuso si se filtra la URL).
 const WINDOW_MS = 60_000;
@@ -89,6 +96,30 @@ export async function generateBlogAction(
     await db.update(analyses).set({ blog }).where(eq(analyses.id, id));
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al generar el newsletter." };
+  }
+  revalidatePath(`/a/${id}`);
+}
+
+export async function generateSocialAction(
+  id: string,
+  opts: z.infer<typeof socialOptsSchema>
+): Promise<{ error: string } | void> {
+  const parsed = socialOptsSchema.safeParse(opts);
+  if (!parsed.success) return { error: "Opciones inválidas." };
+
+  let row;
+  try {
+    [row] = await db.select().from(analyses).where(eq(analyses.id, id)).limit(1);
+  } catch {
+    return { error: "No se pudo cargar el análisis." };
+  }
+  if (!row) return { error: "El análisis no existe." };
+
+  try {
+    const social = await generateSocial(row.transcript, row.sources, parsed.data);
+    await db.update(analyses).set({ social }).where(eq(analyses.id, id));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error al generar el script social." };
   }
   revalidatePath(`/a/${id}`);
 }
