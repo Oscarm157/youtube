@@ -166,6 +166,7 @@ export const analyses = pgTable("analyses", {
   resumenExtendido: text("resumen_extendido").notNull(),
   extraccion: jsonb("extraccion").$type<Extraccion>().notNull(),
   blog: text("blog"), // markdown del newsletter, se llena on-demand
+  social: text("social"), // markdown de los scripts sociales, se llena on-demand
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
